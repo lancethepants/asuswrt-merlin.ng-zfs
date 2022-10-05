@@ -2320,6 +2320,10 @@ define RouterOptions
 		sed -i "/RTCONFIG_OPENVPN/d" $(1); \
 		echo "RTCONFIG_OPENVPN=y" >>$(1); \
  	fi;
+	if [ "$(ZFS)" = "y" ]; then \
+		sed -i "/RTCONFIG_ZFS/d" $(1); \
+		echo "RTCONFIG_ZFS=y" >>$(1); \
+	fi;
 	if [ "$(APP)" = "installed" ]; then \
 		sed -i "/RTCONFIG_APP_PREINSTALLED/d" $(1); \
 		echo "RTCONFIG_APP_PREINSTALLED=y" >>$(1); \
@@ -5569,6 +5573,10 @@ fi;
 	else \
 		sed -i "/CONFIG_WIREGUARD/d" $(1); \
 		echo "# CONFIG_WIREGUARD is not set" >>$(1); \
+	fi;
+	if [ "$(ZFS)" = "y" ]; then \
+		sed -i "/CONFIG_ZFS/d" $(1); \
+		echo "CONFIG_ZFS=y" >>$(1); \
 	fi;
 	$(call platformKernelConfig, $(1))
 	$(call extraKernelConfig, $(1))

@@ -209,6 +209,7 @@ RTCONFIG_TELENET=y
 # RTCONFIG_BRCM_USBAP is not set
 # RTCONFIG_LZO is not set
 # RTCONFIG_OPENVPN is not set
+# RTCONFIG_ZFS is not set
 # RTCONFIG_IPSEC is not set
 # RTCONFIG_QUICKSEC is not set
 # RTCONFIG_STRONGSWAN is not set

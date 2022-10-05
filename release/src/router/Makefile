@@ -1383,6 +1383,12 @@ obj-$(RTCONFIG_OPENVPN) += openpam
 obj-$(RTCONFIG_OPENVPN) += easy-rsa
 obj-$(RTCONFIG_OPENVPN) += openssl openvpn
 
+obj-$(RTCONFIG_ZFS) += zlib
+obj-$(RTCONFIG_ZFS) += openssl
+obj-$(RTCONFIG_ZFS) += libtirpc
+obj-$(RTCONFIG_ZFS) += util-linux-2.38.1
+obj-$(RTCONFIG_ZFS) += zfs
+
 obj-$(CONFIG_LINUX26) += hotplug2
 obj-$(CONFIG_LINUX26) += udev
 ifeq ($(RTCONFIG_USB_CDROM),y)
@@ -6062,6 +6068,102 @@ openvpn-install:
 		$(STRIP) -s $(INSTALLDIR)/openvpn/usr/lib/openvpn-plugin-auth-pam.so ; \
 #		install -D openvpn/dh2048.pem $(INSTALLDIR)/openvpn/rom/dh2048.pem ; \
 	fi
+
+libtirpc/stamp-h1:
+	cd libtirpc && \
+	./bootstrap && \
+	CFLAGS="-O3 -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections -fPIC" \
+	LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections -fPIC" \
+	$(CONFIGURE) \
+		--prefix=$(TOP)/libtirpc/staged \
+		--disable-shared \
+		--enable-static \
+		--disable-gssapi
+	touch $@
+
+libtirpc: libtirpc/stamp-h1
+	$(MAKE) -C libtirpc && $(MAKE) $@-stage
+
+libtirpc-clean:
+	-@$(MAKE) -C libtirpc clean
+	@rm -f libtirpc/stamp-h1
+	@rm -rf libtirpc/staged
+
+libtirpc-stage:
+	$(MAKE) -C libtirpc install
+
+libtirpc-install:
+	# Nothing to be done here
+	@true
+
+util-linux-2.38.1: util-linux-2.38.1/Makefile
+	$(MAKE) -C $@ && $(MAKE) $@-stage
+
+util-linux-2.38.1/Makefile: util-linux-2.38.1/configure
+	$(MAKE) util-linux-2.38.1-configure
+
+util-linux-2.38.1/configure:
+	( cd util-linux-2.38.1 ; ./autogen.sh )
+
+util-linux-2.38.1-configure:
+		cd util-linux-2.38.1 && \
+		$(CONFIGURE) \
+			--prefix=$(TOP)/util-linux-2.38.1/staged \
+			--disable-shared \
+			--disable-all-programs \
+			--enable-libuuid \
+			--enable-libblkid \
+			--without-btrfs
+
+util-linux-2.38.1-stage:
+	$(MAKE) -C util-linux-2.38.1 install
+
+util-linux-2.38.1-install: util-linux-2.38.1
+	# Nothing to be done here
+	@true
+
+util-linux-2.38.1-clean:
+	[ ! -f util-linux-2.38.1/Makefile ] || $(MAKE) -C util-linux-2.38.1 distclean
+	@rm -f util-linux-2.38.1/Makefile
+	@rm -rf util-linux-2.38.1/staged
+
+zfs/stamp-h1:
+	cd zfs && \
+	ZLIB_CFLAGS="-I$(STAGEDIR)/usr/include" \
+	ZLIB_LIBS="-L$(STAGEDIR)/usr/lib -lz" \
+	LIBUUID_CFLAGS="-I$(TOP)/util-linux-2.38.1/staged/include" \
+	LIBUUID_LIBS="-L$(TOP)/util-linux-2.38.1/staged/lib -luuid" \
+	LIBBLKID_CFLAGS="-I$(TOP)/util-linux-2.38.1/staged/include" \
+	LIBBLKID_LIBS="-L$(TOP)/util-linux-2.38.1/staged/lib -lblkid -luuid" \
+	LIBTIRPC_CFLAGS="-I$(TOP)/libtirpc/staged/include" \
+	LIBTIRPC_LIBS="-L$(TOP)/libtirpc/staged/lib -ltirpc" \
+	LIBCRYPTO_CFLAGS="-I$(STAGEDIR)/usr/include" \
+	LIBCRYPTO_LIBS="-L$(STAGEDIR)/usr/lib -lcrypto" \
+	CFLAGS="-O3 -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections" \
+	LDFLAGS="$(EXTRALDFLAGS) -ffunction-sections -fdata-sections -Wl,--gc-sections" \
+	$(CONFIGURE) \
+		--prefix=/usr \
+		--bindir=/usr/sbin \
+		--libdir=/usr/lib \
+		--with-config=user \
+		--disable-nls \
+		--disable-pyzfs \
+		--disable-pam \
+		--enable-static \
+		--disable-shared
+	touch $@
+
+zfs: zfs/stamp-h1
+	$(MAKE) -C $@ $(PARALLEL_BUILD)
+
+zfs-clean:
+	-@$(MAKE) -C zfs clean
+
+zfs-install:
+	install -D zfs/cmd/zfs/zfs $(INSTALLDIR)/zfs/usr/sbin/zfs
+	$(STRIP) -s $(INSTALLDIR)/zfs/usr/sbin/zfs
+	install -D zfs/cmd/zpool/zpool $(INSTALLDIR)/zfs/usr/sbin/zpool
+	$(STRIP) -s $(INSTALLDIR)/zfs/usr/sbin/zpool
 
 sdparm-1.02: sdparm-1.02/Makefile
 	$(MAKE) -C $@
